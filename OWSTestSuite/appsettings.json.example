@@ -1,0 +1,7 @@
+{
+  "ConnectionStrings": {
+    "MSSQL": "Server=localhost;Database=OpenWorldServer;User Id=OWS;Password=yourStrong(!)Password;ConnectRetryCount=0",
+    "MySQL": "server=localhost;user=ows;database=openworldserver;port=3306;password=yourStrong(!)Password;Allow User Variables=True;SslMode=None",
+    "Postgres": "Host=localhost;Port=5432;Database=openworldserver;Username=ows;Password=yourStrong(!)Password;"
+  }
+}
