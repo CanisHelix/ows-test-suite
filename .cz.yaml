@@ -1,0 +1,4 @@
+commitizen:
+  annotated_tag: true
+  tag_format: $version
+  version: 0.0.0
