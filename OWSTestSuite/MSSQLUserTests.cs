@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
+using OWSShared.Options;
 using OWSTestSuite.Models;
 using static OWSTestSuite.Helpers;
-using User = OWSTestSuite.Models.User;
 
 namespace OWSTestSuite;
 
