@@ -9,6 +9,10 @@ _[Contibutors](#license-contribution) and PRs are welcome_.
 **Dependencies**
 
 - [Open World Server](https://github.com/Dartanlla/OWS/)
+- Open World Server Database
+    - Customer with GUID of `00000000-0000-0000-0000-000000000001` having the following:
+        - Default Data from Init scripts
+        - Default Data from HubWorld MMO Init scripts
 
 # Installation
 
