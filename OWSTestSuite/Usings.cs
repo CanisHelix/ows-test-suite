@@ -13,5 +13,5 @@ global using OWSData.Models.StoredProcs;
 global using OWSData.Models.Tables;
 
 global using Microsoft.Data.SqlClient;
-global using MySql.Data.MySqlClient;
+global using MySqlConnector;
 global using Npgsql;
