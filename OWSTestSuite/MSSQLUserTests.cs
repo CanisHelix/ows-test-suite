@@ -75,12 +75,19 @@ public class MSSQLUserTests : BaseTest
         PlayerLoginAndCreateSession playerLoginAndCreateSession = await UserRepo.LoginAndCreateSession(CustomerGuid, Accounts[0].User?.Email, Accounts[0].User?.Password);
         Assert.That(playerLoginAndCreateSession.Authenticated);
 
+        GetUserSession userSession = await UserRepo.GetUserSession(CustomerGuid, (Guid)playerLoginAndCreateSession.UserSessionGuid!);
+
         CreateCharacter createCharacter = await UserRepo.CreateCharacter(CustomerGuid, (Guid)playerLoginAndCreateSession.UserSessionGuid!, Accounts[0].Character?.CharacterName, Accounts[0].Character?.CharacterClass);
         Assert.Multiple(() =>
         {
             Assert.That(createCharacter.ClassName, Is.EqualTo(Accounts[0].Character?.CharacterClass));
             Assert.That(createCharacter.CharacterName, Is.EqualTo(Accounts[0].Character?.CharacterName));
         });
+
+        SuccessAndErrorMessage output = await UserRepo.UserSessionSetSelectedCharacter(CustomerGuid, (Guid)userSession.UserSessionGUID!, Accounts[0].Character?.CharacterName);
+        GetUserSession updatedUserSession = await UserRepo.GetUserSession(CustomerGuid, (Guid)userSession.UserSessionGUID!);
+        Assert.That(userSession.SelectedCharacterName, Is.Not.EqualTo(updatedUserSession.SelectedCharacterName));
+        Assert.That(updatedUserSession.SelectedCharacterName, Is.EqualTo(Accounts[0].Character?.CharacterName));
     }
 
     [Test]
@@ -237,6 +244,8 @@ public class MSSQLUserTests : BaseTest
         // Login First
         PlayerLoginAndCreateSession playerLoginAndCreateSession = await UserRepo.LoginAndCreateSession(CustomerGuid, Accounts[0].User?.Email, Accounts[0].User?.Password);
         Assert.That(playerLoginAndCreateSession.Authenticated);
+        Thread.Sleep(6000);
+        GetUserSession user = await UserRepo.GetUserFromEmail(CustomerGuid, Accounts[0].User?.Email);
 
         CreateCharacter createCharacter = await UserRepo.CreateCharacter(CustomerGuid, (Guid)playerLoginAndCreateSession.UserSessionGuid!, Accounts[0].Character?.CharacterName, Accounts[0].Character?.CharacterClass);
         Assert.Multiple(() =>
@@ -269,7 +278,9 @@ public class MSSQLUserTests : BaseTest
             Assert.That(character.Z, Is.EqualTo(501));
         });
 
-        // TODO: Assert User LastAccess update
+        GetUserSession updatedUser = await UserRepo.GetUserFromEmail(CustomerGuid, Accounts[0].User?.Email);
+
+        Assert.That(updatedUser.LastAccess, Is.GreaterThan(user.LastAccess));
     }
 
     [Test]
