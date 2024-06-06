@@ -18,7 +18,7 @@ public class MySQLUserTests : MSSQLUserTests
         InstanceRepo = new OWSData.Repositories.Implementations.MySQL.InstanceManagementRepository(StorageOptions);
         GlobalRepo = new OWSData.Repositories.Implementations.MySQL.GlobalDataRepository(StorageOptions);
         Connection = new MySqlConnection(StorageOptions.Value.OWSDBConnectionString);
-        await MySQLSetupAbilities(Connection, CustomerGuid);
+        await SetupAbilities(Connection, CustomerGuid);
 
         // Ensure we have 2 test users
 
@@ -39,10 +39,10 @@ public class MySQLUserTests : MSSQLUserTests
             PlayerLoginAndCreateSession? playerLoginAndCreateSession = await UserRepo.LoginAndCreateSession(CustomerGuid, account.User?.Email, account.User?.Password);
             await UserRepo.RemoveCharacter(CustomerGuid, (Guid)playerLoginAndCreateSession.UserSessionGuid!, account.Character?.CharacterName);
 
-            await RemoveUser(Connection, CustomerGuid, playerLoginAndCreateSession);
         }
-
-        await RemoveAbilities(Connection, CustomerGuid, LauncherGuid);
+        await RemoveUsers(Connection, CustomerGuid);
+        await RemoveAbilities(Connection, CustomerGuid);
+        await RemoveServers(Connection, CustomerGuid);
         await RemoveCustomData(Connection, CustomerGuid);
     }
 }

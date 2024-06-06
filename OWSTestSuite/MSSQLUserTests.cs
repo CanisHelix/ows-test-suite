@@ -25,7 +25,7 @@ public class MSSQLUserTests : BaseTest
         InstanceRepo = new OWSData.Repositories.Implementations.MSSQL.InstanceManagementRepository(StorageOptions);
         GlobalRepo = new OWSData.Repositories.Implementations.MSSQL.GlobalDataRepository(StorageOptions);
         Connection = new SqlConnection(StorageOptions.Value.OWSDBConnectionString);
-        await MSSQLSetupAbilities(Connection, CustomerGuid);
+        await SetupAbilities(Connection, CustomerGuid);
 
         // Ensure we have 2 test users
 
@@ -45,11 +45,11 @@ public class MSSQLUserTests : BaseTest
         {
             PlayerLoginAndCreateSession playerLoginAndCreateSession = await UserRepo.LoginAndCreateSession(CustomerGuid, account.User?.Email, account.User?.Password);
             await UserRepo.RemoveCharacter(CustomerGuid, (Guid)playerLoginAndCreateSession.UserSessionGuid!, account.Character?.CharacterName);
-
-            await RemoveUser(Connection, CustomerGuid, playerLoginAndCreateSession);
         }
 
-        await RemoveAbilities(Connection, CustomerGuid, LauncherGuid);
+        await RemoveUsers(Connection, CustomerGuid);
+        await RemoveAbilities(Connection, CustomerGuid);
+        await RemoveServers(Connection, CustomerGuid);
         await RemoveCustomData(Connection, CustomerGuid);
     }
 

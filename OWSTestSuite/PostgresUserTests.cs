@@ -18,7 +18,7 @@ public class PostgresUserTests : MSSQLUserTests
         InstanceRepo = new OWSData.Repositories.Implementations.Postgres.InstanceManagementRepository(StorageOptions);
         GlobalRepo = new OWSData.Repositories.Implementations.Postgres.GlobalDataRepository(StorageOptions);
         Connection = new NpgsqlConnection(StorageOptions.Value.OWSDBConnectionString);
-        await PostgresSetupAbilities(Connection, CustomerGuid);
+        await SetupAbilities(Connection, CustomerGuid);
 
         // Ensure we have 2 test users
         foreach (Account account in Accounts)
@@ -38,10 +38,10 @@ public class PostgresUserTests : MSSQLUserTests
             PlayerLoginAndCreateSession? playerLoginAndCreateSession = await UserRepo.LoginAndCreateSession(CustomerGuid, account.User?.Email, account.User?.Password);
             await UserRepo.RemoveCharacter(CustomerGuid, (Guid)playerLoginAndCreateSession.UserSessionGuid!, account.Character?.CharacterName);
 
-            await RemoveUser(Connection, CustomerGuid, playerLoginAndCreateSession);
         }
-
-        await RemoveAbilities(Connection, CustomerGuid, LauncherGuid);
+        await RemoveUsers(Connection, CustomerGuid);
+        await RemoveAbilities(Connection, CustomerGuid);
+        await RemoveServers(Connection, CustomerGuid);
         await RemoveCustomData(Connection, CustomerGuid);
     }
 }

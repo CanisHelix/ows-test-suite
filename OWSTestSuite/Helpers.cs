@@ -1,4 +1,5 @@
 using System.Reflection;
+using OWSData.SQL;
 
 namespace OWSTestSuite;
 
@@ -15,71 +16,28 @@ public static class Helpers
         return sb.ToString();
     }
 
-    public static async Task MSSQLSetupAbilities(IDbConnection connection, Guid customerGuid)
+    public static async Task SetupAbilities(IDbConnection connection, Guid customerGuid)
     {
         // Setup Test AbilityType and Ability
         using (connection)
         {
+            await RemoveAbilities(connection, customerGuid);
+            await RemoveUsers(connection, customerGuid);
+            await RemoveServers(connection, customerGuid);
+            await RemoveCustomData(connection, customerGuid);
             var p = new DynamicParameters();
             p.Add("@CustomerGUID", customerGuid);
             p.Add("@AbilityTypeID", -1);
             p.Add("@AbilityTypeName", "Test");
 
-            await connection.ExecuteAsync("AddOrUpdateAbilityType",
-                p,
-                commandType: CommandType.StoredProcedure);
-
-            p = new DynamicParameters();
-            p.Add("@CustomerGUID", customerGuid);
-
-            var output = await connection.QueryAsync<AbilityTypes>("GetAbilityTypes",
-                p,
-                commandType: CommandType.StoredProcedure);
-
-            var abilityTypeId = -1;
-            foreach (AbilityTypes abilityType in output)
-            {
-                if (abilityType.AbilityTypeName == "Test")
-                {
-                    abilityTypeId = abilityType.AbilityTypeId;
-                }
-            }
-
-            p = new DynamicParameters();
-            p.Add("@CustomerGUID", customerGuid);
-            p.Add("@AbilityID", -1);
-            p.Add("@AbilityName", "Test");
-            p.Add("@AbilityTypeID", abilityTypeId);
-            p.Add("@TextureToUseForIcon", "");
-            p.Add("@Class", -1);
-            p.Add("@Race", -1);
-            p.Add("@GameplayAbilityClassName", "");
-            p.Add("@AbilityCustomJSON", "");
-
-            await connection.ExecuteAsync("AddOrUpdateAbility",
-                p,
-                commandType: CommandType.StoredProcedure);
-        }
-    }
-
-    public static async Task MySQLSetupAbilities(IDbConnection connection, Guid customerGuid)
-    {
-        // Setup Test AbilityType and Ability
-        using (connection)
-        {
-            var p = new DynamicParameters();
-            p.Add("@CustomerGUID", customerGuid);
-            p.Add("@AbilityTypeID", -1);
-            p.Add("@AbilityTypeName", "Test");
-
-            await connection.ExecuteAsync("call AddOrUpdateAbilityType(@CustomerGUID, @AbilityTypeID, @AbilityTypeName)",
+            await connection.ExecuteAsync("INSERT INTO AbilityTypes (CustomerGUID, AbilityTypeName) VALUES (@CustomerGUID, @AbilityTypeName)",
                 p,
                 commandType: CommandType.Text);
 
             p = new DynamicParameters();
             p.Add("@CustomerGUID", customerGuid);
 
-            var output = await connection.QueryAsync<AbilityTypes>("call GetAbilityTypes(@CustomerGUID)",
+            var output = await connection.QueryAsync<AbilityTypes>("SELECT *, (SELECT COUNT(*) FROM Abilities AB WHERE AB.AbilityTypeID = ABT.AbilityTypeID) AS NumberOfAbilities FROM AbilityTypes ABT WHERE ABT.CustomerGUID = @CustomerGUID;",
                 p,
                 commandType: CommandType.Text);
 
@@ -103,77 +61,51 @@ public static class Helpers
             p.Add("@GameplayAbilityClassName", "");
             p.Add("@AbilityCustomJSON", "");
 
-            await connection.ExecuteAsync("call AddOrUpdateAbility(@CustomerGUID, @AbilityID, @AbilityName, @AbilityTypeID, @TextureToUseForIcon, @Class, @Race, @GameplayAbilityClassName, @AbilityCustomJSON)",
+            await connection.ExecuteAsync("INSERT INTO Abilities (CustomerGUID, AbilityName, AbilityTypeID, TextureToUseForIcon, Class, Race, GameplayAbilityClassName, AbilityCustomJSON) VALUES (@CustomerGUID, @AbilityName, @AbilityTypeID, @TextureToUseForIcon, @Class, @Race, @GameplayAbilityClassName, @AbilityCustomJSON);",
                 p,
                 commandType: CommandType.Text);
         }
     }
 
-    public static async Task PostgresSetupAbilities(IDbConnection connection, Guid customerGuid)
+    public static async Task RemoveUsers(IDbConnection connection, Guid customerGuid)
     {
-        // Setup Test AbilityType and Ability
-        using (connection)
+        var characterIds = await connection.QueryAsync<Int32>(@"SELECT CharacterID FROM Characters WHERE CustomerGUID = @CustomerGUID;", new { CustomerGUID = customerGuid });
+        foreach (var characterId in characterIds)
         {
-            var p = new DynamicParameters();
-            p.Add("@CustomerGUID", customerGuid);
-            p.Add("@AbilityTypeID", -1);
-            p.Add("@AbilityTypeName", "Test");
+            await connection.ExecuteAsync(GenericQueries.RemoveCharacterFromAllInstances, new  { CustomerGUID = customerGuid, CharacterID = characterId }, commandType: CommandType.Text);
+            await connection.ExecuteAsync(GenericQueries.RemoveCharacterAbilities, new  { CustomerGUID = customerGuid, CharacterID = characterId }, commandType: CommandType.Text);
+            await connection.ExecuteAsync(GenericQueries.RemoveCharacterAbilityBars, new  { CustomerGUID = customerGuid, CharacterID = characterId }, commandType: CommandType.Text);
+            await connection.ExecuteAsync(GenericQueries.RemoveCharacterHasAbilities, new  { CustomerGUID = customerGuid, CharacterID = characterId }, commandType: CommandType.Text);
+            await connection.ExecuteAsync(GenericQueries.RemoveCharacterHasItems, new  { CustomerGUID = customerGuid, CharacterID = characterId }, commandType: CommandType.Text);
+            await connection.ExecuteAsync(GenericQueries.RemoveCharacterInventoryItems, new  { CustomerGUID = customerGuid, CharacterID = characterId }, commandType: CommandType.Text);
+            await connection.ExecuteAsync(GenericQueries.RemoveCharacterInventory, new  { CustomerGUID = customerGuid, CharacterID = characterId }, commandType: CommandType.Text);
+            await connection.ExecuteAsync(GenericQueries.RemoveCharacterGroupUsers, new  { CustomerGUID = customerGuid, CharacterID = characterId }, commandType: CommandType.Text);
+            await connection.ExecuteAsync(GenericQueries.RemoveCharacterCharacterData, new  { CustomerGUID = customerGuid, CharacterID = characterId }, commandType: CommandType.Text);
+            await connection.ExecuteAsync(GenericQueries.RemoveCharacterFromPlayerGroupCharacters, new  { CustomerGUID = customerGuid, CharacterID = characterId }, commandType: CommandType.Text);
+            await connection.ExecuteAsync(GenericQueries.RemoveCharacter, new  { CustomerGUID = customerGuid, CharacterID = characterId }, commandType: CommandType.Text);
+        }
 
-            await connection.ExecuteAsync("call AddOrUpdateAbilityType(@CustomerGUID, @AbilityTypeID, @AbilityTypeName)",
-                p,
-                commandType: CommandType.Text);
-
-            p = new DynamicParameters();
-            p.Add("@CustomerGUID", customerGuid);
-
-            var output = await connection.QueryAsync<AbilityTypes>("select * from GetAbilityTypes(@CustomerGUID)",
-                p,
-                commandType: CommandType.Text);
-
-            var abilityTypeId = -1;
-            foreach (AbilityTypes abilityType in output)
-            {
-                if (abilityType.AbilityTypeName == "Test")
-                {
-                    abilityTypeId = abilityType.AbilityTypeId;
-                }
-            }
-
-            p = new DynamicParameters();
-            p.Add("@CustomerGUID", customerGuid);
-            p.Add("@AbilityID", -1);
-            p.Add("@AbilityName", "Test");
-            p.Add("@AbilityTypeID", abilityTypeId);
-            p.Add("@TextureToUseForIcon", "");
-            p.Add("@Class", -1);
-            p.Add("@Race", -1);
-            p.Add("@GameplayAbilityClassName", "");
-            p.Add("@AbilityCustomJSON", "");
-
-            await connection.ExecuteAsync("call AddOrUpdateAbility(@CustomerGUID, @AbilityID, @AbilityName, @AbilityTypeID, @TextureToUseForIcon, @Class, @Race, @GameplayAbilityClassName, @AbilityCustomJSON)",
-                p,
-                commandType: CommandType.Text);
+        var userGuids = await connection.QueryAsync<Guid>(@"SELECT UserGUID FROM UserSessions WHERE CustomerGUID = @CustomerGUID;", new { CustomerGUID = customerGuid });
+        foreach (var userGuid in userGuids)
+        {
+            await connection.ExecuteAsync(@"DELETE FROM UsersInQueue WHERE CustomerGUID = @CustomerGUID AND UserGUID = @UserGUID;", new { CustomerGUID = customerGuid, UserGUID = userGuid });
+            await connection.ExecuteAsync(@"DELETE FROM UserSessions WHERE CustomerGUID = @CustomerGUID AND UserGUID = @UserGUID;", new { CustomerGUID = customerGuid, UserGUID = userGuid });
+            await connection.ExecuteAsync(@"DELETE FROM Users WHERE CustomerGUID = @CustomerGUID AND UserGUID = @UserGUID;", new { CustomerGUID = customerGuid, UserGUID = userGuid });
         }
     }
 
-    public static async Task RemoveUser(IDbConnection connection, Guid customerGuid, PlayerLoginAndCreateSession playerLoginAndCreateSession)
-    {
-        var userGuid = await connection.ExecuteScalarAsync<Guid>(@"SELECT UserGUID FROM UserSessions WHERE UserSessionGUID = @UserSessionGUID;", new { CustomerGUID = customerGuid, UserSessionGUID = (Guid)playerLoginAndCreateSession.UserSessionGuid! });
-        await connection.ExecuteAsync(@"DELETE FROM UsersInQueue WHERE CustomerGUID = @CustomerGUID AND UserGUID = @UserGUID;", new { CustomerGUID = customerGuid, UserGUID = userGuid });
-        await connection.ExecuteAsync(@"DELETE FROM UserSessions WHERE CustomerGUID = @CustomerGUID AND UserGUID = @UserGUID;", new { CustomerGUID = customerGuid, UserGUID = userGuid });
-        await connection.ExecuteAsync(@"DELETE FROM Users WHERE CustomerGUID = @CustomerGUID AND UserGUID = @UserGUID;", new { CustomerGUID = customerGuid, UserGUID = userGuid });
-    }
-
-    public static async Task RemoveAbilities(IDbConnection connection, Guid customerGuid, Guid launcherGuid)
+    public static async Task RemoveAbilities(IDbConnection connection, Guid customerGuid)
     {
         // Remove Ability and AbilityType
         await connection.ExecuteAsync(@"DELETE FROM Abilities WHERE CustomerGUID = @CustomerGUID AND AbilityName='Test'", new { CustomerGUID = customerGuid });
         await connection.ExecuteAsync(@"DELETE FROM AbilityTypes WHERE CustomerGUID = @CustomerGUID AND AbilityTypeName='Test'", new { CustomerGUID = customerGuid });
+    }
 
+    public static async Task RemoveServers(IDbConnection connection, Guid customerGuid)
+    {
         // Remove World Servers and Cleanup Logs
-        await connection.ExecuteAsync(@"DELETE FROM WorldServers WHERE CustomerGUID = @CustomerGUID AND ZoneServerGUID = @LauncherGuid", new { CustomerGUID = customerGuid, LauncherGuid = launcherGuid });
+        await connection.ExecuteAsync(@"DELETE FROM WorldServers WHERE CustomerGUID = @CustomerGUID", new { CustomerGUID = customerGuid });
         await connection.ExecuteAsync(@"DELETE FROM MapInstances WHERE CustomerGUID = @CustomerGUID", new { CustomerGUID = customerGuid });
-        await connection.ExecuteAsync(@"DELETE FROM DebugLog WHERE CustomerGUID = @CustomerGUID", new { CustomerGUID = customerGuid });
     }
 
     public static async Task RemoveCustomData(IDbConnection connection, Guid customerGuid)
