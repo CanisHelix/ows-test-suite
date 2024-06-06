@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using OWSTestSuite.Models;
+using Serilog;
 using User = OWSTestSuite.Models.User;
 
 namespace OWSTestSuite;
@@ -19,6 +20,7 @@ public class BaseTest
             .AddJsonFile(@"appsettings.json", optional: false, reloadOnChange: false)
             .AddEnvironmentVariables()
             .Build();
+        Log.Logger = new LoggerConfiguration().ReadFrom.Configuration(Configuration).CreateLogger();
     }
 
     [SetUp]
