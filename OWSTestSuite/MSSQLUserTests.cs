@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using OWSShared.Options;
 using OWSTestSuite.Models;
 using static OWSTestSuite.Helpers;
+using User = OWSData.Models.Tables.User;
 
 namespace OWSTestSuite;
 
@@ -340,6 +341,12 @@ public class MSSQLUserTests : BaseTest
         Assert.That(mapInstance.MapInstanceID, Is.GreaterThan(0));
         await CharRepo.AddCharacterToMapInstanceByCharName(CustomerGuid, Accounts[0].Character?.CharacterName, mapInstance.MapInstanceID);
 
+        IEnumerable<GetPlayerGroupsCharacterIsIn> playerGroupsCharacterIsIn =
+            await UserRepo.GetPlayerGroupsCharacterIsIn(CustomerGuid,(Guid)playerLoginAndCreateSession.UserSessionGuid!, Accounts[0].Character?.CharacterName, 0);
+
+        GetUserSession userSession = await UserRepo.GetUserSession(CustomerGuid, (Guid)playerLoginAndCreateSession.UserSessionGuid!);
+        User user = await UserRepo.GetUser(CustomerGuid, (Guid)userSession.UserGuid!);
+
         GetCharByCharName character = await CharRepo.GetCharByCharName(CustomerGuid, Accounts[0].Character?.CharacterName);
         Assert.Multiple(() =>
         {
@@ -431,6 +438,9 @@ public class MSSQLUserTests : BaseTest
         Assert.That(mapInstance.Status, Is.EqualTo(1));
 
         await InstanceRepo.SetZoneInstanceStatus(CustomerGuid, mapInstance1.MapInstanceID, 2);
+
+        IEnumerable<GetZoneInstancesForZone> zoneInstances = await InstanceRepo.GetZoneInstancesOfZone(CustomerGuid, "ThirdPersonExampleMap");
+        Assert.That(zoneInstances.First().MapInstanceID, Is.EqualTo(mapInstance1.MapInstanceID));
 
         mapInstance = await CharRepo.CheckMapInstanceStatus(CustomerGuid, mapInstance1.MapInstanceID);
         Assert.That(mapInstance.Status, Is.EqualTo(2));
